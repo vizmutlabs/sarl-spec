@@ -58,15 +58,18 @@ def _is_reachable(
     tgt_id: str, tgt_tags: list[str],
 ) -> bool:
     """
-    Walk the ordered policy list; first matching rule wins.
+    Public targets are reachable by any authenticated requester — no policy needed.
+    For all other tiers, walk the ordered policy list; first matching rule wins.
     Default (no match) = DENY.
     """
+    if "public" in tgt_tags:
+        return True
     for rule in _policies:
         req_match = _selector_matches(rule["requester"], req_id, req_tags)
         tgt_match = _selector_matches(rule["target"], tgt_id, tgt_tags)
         if req_match and tgt_match:
             return rule["allow"]
-    return False  # closed-world default
+    return False  # closed-world default for group / private / ephemeral
 
 
 # ---------------------------------------------------------------------------
@@ -136,7 +139,7 @@ def resolve(
     """
     Resolve a target's endpoint — only if:
     1. The requester is registered and the credential matches  (mock auth)
-    2. At least one policy permits requester → target          (reachability filter)
+    2. The target is public (automatic pass), OR a policy permits requester → target
     """
     ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
 
@@ -157,7 +160,7 @@ def resolve(
 
     if not _is_reachable(requester_id, requester["tags"], target, target_agent["tags"]):
         _deny("policy deny", 403,
-              f"reachability policy denies '{requester_id}' \u2192 '{target}'")
+              f"reachability policy denies '{requester_id}' → '{target}'")
 
     _audit_log.append({"ts": ts, "requester": requester_id,
                        "target": target, "result": "ALLOWED", "reason": ""})
@@ -394,11 +397,13 @@ def ui():
   <strong>What is SARL?</strong> The Secure Agent Reachability Layer acts as a gatekeeper in front of
   your agent network. Before any two agents can communicate, the registry enforces
   <em>pre-contact filtering</em>: an agent&rsquo;s endpoint is <strong>never revealed</strong> to a caller
-  unless two gates both pass &mdash; (1)&nbsp;the caller is authenticated, and (2)&nbsp;an explicit
-  policy rule permits the connection. No matching rule means permanent deny. Agents are assigned a
+  unless authentication passes and the tier rules allow it.
+  <strong>Public</strong> agents are reachable by any authenticated requester &mdash; no policy rule needed.
+  <strong>Group, Private, and Ephemeral</strong> agents use a closed-world default: deny unless an explicit
+  policy rule permits the connection. Agents are assigned a
   <strong>tier</strong> (Public / Group / Private / Ephemeral) which doubles as their policy tag,
-  letting you write rules like &ldquo;private agents may reach public agents&rdquo; without naming
-  every agent individually. Use the panels below to register agents, add rules, and watch the
+  letting you write rules like &ldquo;bob may reach alice&rdquo; without naming every agent individually.
+  Use the panels below to register agents, add rules, and watch the
   <strong>Audit Log</strong> capture every resolution attempt live. Hit <strong>&#9654;&nbsp;Start Demo</strong>
   for a guided walkthrough.
 </div>
@@ -605,51 +610,59 @@ async function doReset() {
 // ── Demo — step definitions ───────────────────────────────────────────────
 const DEMO_STEPS = [
   {
-    label:   'Step 1 of 5 \u2014 Register alice',
-    preview: 'Register <strong>alice</strong> as a <strong>private</strong>-tier (internal) agent with credential <code>s3cr3t</code>. Private agents are not publicly reachable by default \u2014 no endpoint will be revealed to callers unless a policy explicitly permits it.',
-    run:     () => api('POST', '/register', {
-      agent_id: 'alice', endpoint: 'https://alice.internal/agent',
-      tags: ['private'], credential: 's3cr3t',
-    }),
-    explain: (ok, json, status) => ok
-      ? 'alice is now registered with tag \u201cprivate\u201d. She has a credential and a registered endpoint, but the registry will not share that endpoint with anyone until a policy says so.'
-      : `Registration failed (${status}): ${json.detail || JSON.stringify(json)}`,
-  },
-  {
-    label:   'Step 2 of 5 \u2014 Register bob',
-    preview: 'Register <strong>bob</strong> as a <strong>public</strong>-tier agent with credential <code>b0bkey</code>. Public agents are intended to be discoverable, but only to callers that hold a valid credential <em>and</em> satisfy a policy rule.',
+    label:   'Step 1 of 6 \u2014 Register bob (Public)',
+    preview: 'Register <strong>bob</strong> as a <strong>public</strong>-tier agent with credential <code>b0bkey</code>. Public agents are openly reachable by <em>any</em> authenticated requester \u2014 no policy rule is required. This is SARL\u2019s exception to the closed-world default.',
     run:     () => api('POST', '/register', {
       agent_id: 'bob', endpoint: 'https://bob.example/agent',
       tags: ['public'], credential: 'b0bkey',
     }),
     explain: (ok, json, status) => ok
-      ? 'bob is now registered with tag \u201cpublic\u201d. Both agents are in the registry. alice could try to look up bob\u2019s endpoint, but there is still no policy allowing that \u2014 the next step will show what happens.'
+      ? 'bob is now registered with tag \u201cpublic\u201d. Because of his tier, any authenticated agent can resolve his endpoint without needing an explicit policy rule.'
       : `Registration failed (${status}): ${json.detail || JSON.stringify(json)}`,
   },
   {
-    label:   'Step 3 of 5 \u2014 Resolve with no policy',
-    preview: 'alice tries to look up bob\u2019s endpoint. alice is authenticated (correct credential) and both agents exist, but <strong>no policy rule has been added yet</strong>. SARL uses a closed-world default: anything not explicitly allowed is <strong>denied</strong>. Expect a 403.',
+    label:   'Step 2 of 6 \u2014 Register alice (Private)',
+    preview: 'Register <strong>alice</strong> as a <strong>private</strong>-tier agent with credential <code>s3cr3t</code>. Private agents use the closed-world default \u2014 their endpoint is never revealed unless an explicit policy rule permits the specific requester \u2192 target pair.',
+    run:     () => api('POST', '/register', {
+      agent_id: 'alice', endpoint: 'https://alice.internal/agent',
+      tags: ['private'], credential: 's3cr3t',
+    }),
+    explain: (ok, json, status) => ok
+      ? 'alice is now registered with tag \u201cprivate\u201d. Both agents are in the registry. The contrast between their tiers is what the next steps demonstrate.'
+      : `Registration failed (${status}): ${json.detail || JSON.stringify(json)}`,
+  },
+  {
+    label:   'Step 3 of 6 \u2014 Resolve bob (Public \u2014 succeeds)',
+    preview: 'alice resolves <strong>bob\u2019s</strong> endpoint. alice is authenticated and bob is tagged <em>public</em>. SARL short-circuits the policy check for public targets \u2014 <strong>no policy rule is needed</strong>. Expect a 200.',
     run:     () => api('GET', '/resolve?target=bob&requester_id=alice&credential=s3cr3t'),
+    explain: (ok, json, status) => ok
+      ? '200 ALLOWED \u2014 public tier bypass. The registry saw that bob carries the \u201cpublic\u201d tag, skipped the policy list entirely, and returned his endpoint. No rule was required.'
+      : `Unexpected denial (${status}): ${json.detail || JSON.stringify(json)}`,
+  },
+  {
+    label:   'Step 4 of 6 \u2014 Resolve alice (Private \u2014 fails)',
+    preview: 'bob tries to resolve <strong>alice\u2019s</strong> endpoint. alice is tagged <em>private</em>, so the public-tier bypass does not apply. SARL walks the policy list and finds <strong>no matching rule</strong>. The closed-world default kicks in. Expect a 403.',
+    run:     () => api('GET', '/resolve?target=alice&requester_id=bob&credential=b0bkey'),
     explain: (ok, json, status) => (!ok && status === 403)
-      ? '403 DENIED \u2014 exactly as expected. Even though both agents are registered and alice\u2019s credential is correct, the registry refused to reveal bob\u2019s endpoint because no policy permits the private \u2192 public connection. The closed-world default protects agents by default.'
+      ? '403 DENIED \u2014 closed-world default. alice is private, there is no policy permitting bob \u2192 alice, so the registry refuses to reveal her endpoint. Authentication alone is never enough for non-public agents.'
       : ok
-        ? 'Unexpected success \u2014 a policy may already exist. Check registry state.'
+        ? 'Unexpected success \u2014 a stale policy may exist. Check registry state.'
         : `Unexpected error (${status}): ${json.detail || JSON.stringify(json)}`,
   },
   {
-    label:   'Step 4 of 5 \u2014 Add policy',
-    preview: 'Add a policy rule: <strong>private \u2192 public = allow</strong>. This grants any agent tagged <em>private</em> the right to resolve any agent tagged <em>public</em>. Because alice is private and bob is public, this single tag-based rule covers the pair without naming them explicitly.',
-    run:     () => api('POST', '/policy', { requester: 'private', target: 'public', allow: true }),
+    label:   'Step 5 of 6 \u2014 Add policy bob \u2192 alice',
+    preview: 'Add a policy rule: <strong>bob \u2192 alice = allow</strong>. This grants bob (by agent ID) explicit permission to resolve alice. Because alice is private, this is the only way to unlock her endpoint for bob.',
+    run:     () => api('POST', '/policy', { requester: 'bob', target: 'alice', allow: true }),
     explain: (ok, json, status) => ok
-      ? 'Policy added at index 0. The rule \u201cprivate \u2192 public = allow\u201d is now the first (and only) entry in the ordered policy list. The next resolve attempt will walk this list and find a match for alice \u2192 bob.'
+      ? 'Policy added at index 0. The rule \u201cbob \u2192 alice = allow\u201d is now the first entry in the ordered policy list. On the next resolve attempt the registry will walk this list, match bob \u2192 alice, and return ALLOWED.'
       : `Policy add failed (${status}): ${json.detail || JSON.stringify(json)}`,
   },
   {
-    label:   'Step 5 of 5 \u2014 Resolve with policy',
-    preview: 'alice tries to resolve bob\u2019s endpoint again. This time the registry evaluates the policy list and finds the matching rule: <strong>private \u2192 public = allow</strong>. Expect a 200 with bob\u2019s endpoint returned.',
-    run:     () => api('GET', '/resolve?target=bob&requester_id=alice&credential=s3cr3t'),
+    label:   'Step 6 of 6 \u2014 Resolve alice again (succeeds)',
+    preview: 'bob tries to resolve <strong>alice\u2019s</strong> endpoint again. This time the registry walks the policy list and finds the matching rule: <strong>bob \u2192 alice = allow</strong>. Expect a 200 with alice\u2019s endpoint returned.',
+    run:     () => api('GET', '/resolve?target=alice&requester_id=bob&credential=b0bkey'),
     explain: (ok, json, status) => ok
-      ? '200 ALLOWED. The registry matched alice\u2019s \u201cprivate\u201d tag against bob\u2019s \u201cpublic\u201d tag, found the allow rule, and returned bob\u2019s endpoint. alice can now initiate contact. The Audit Log above recorded both attempts \u2014 the earlier DENIED and this ALLOWED.'
+      ? '200 ALLOWED. The registry matched bob against the \u201cbob \u2192 alice\u201d rule and returned alice\u2019s endpoint. The Audit Log shows all four attempts \u2014 the public-tier ALLOWED, the first private-tier DENIED, and now this policy-backed ALLOWED.'
       : `Still denied (${status}): ${json.detail || JSON.stringify(json)}`,
   },
 ];
@@ -726,7 +739,7 @@ function renderDemoPanel() {
   if (_demo.phase === 'done') {
     panel.className = 'demo-panel phase-done';
     lbl.textContent = 'Demo Complete';
-    desc.innerHTML  = 'All 5 steps finished. The <strong>Demo Steps</strong> panel shows the full history. Click <strong>Restart Demo</strong> to run again from scratch.';
+    desc.innerHTML  = 'All 6 steps finished. The <strong>Demo Steps</strong> panel shows the full history. Click <strong>Restart Demo</strong> to run again from scratch.';
     resBox.style.display    = 'none';
     explainEl.style.display = 'none';
     nextBtn.style.display   = 'none';
