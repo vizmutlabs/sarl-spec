@@ -224,16 +224,47 @@ def ui():
 
   /* Demo step panel */
   .demo-panel {
-    background: #0d1f0d; border: 1px solid #14532d; border-radius: 8px;
-    padding: .8rem 1.1rem; margin-bottom: 1.25rem;
-    font-size: .85rem; color: #86efac; line-height: 1.5;
+    background: #0d1117; border: 1px solid #2d3148;
+    border-left: 3px solid #4ade80; border-radius: 8px;
+    padding: 1rem 1.25rem; margin-bottom: 1.25rem;
     display: none;
   }
-  .demo-panel .step-lbl { font-weight: 700; color: #4ade80; }
-  .demo-panel .step-res {
-    font-family: monospace; font-size: .78rem; color: #a7f3d0;
-    margin-top: .45rem; white-space: pre-wrap; word-break: break-all;
+  .demo-panel.phase-result { border-left-color: #f59e0b; }
+  .demo-panel.phase-done   { border-left-color: #818cf8; }
+
+  .demo-step-lbl {
+    font-size: .72rem; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: #4ade80; margin-bottom: .5rem;
   }
+  .demo-panel.phase-result .demo-step-lbl { color: #f59e0b; }
+  .demo-panel.phase-done   .demo-step-lbl { color: #818cf8; }
+
+  .demo-desc {
+    font-size: .88rem; color: #94a3b8; line-height: 1.6; margin-bottom: .6rem;
+  }
+  .demo-desc strong { color: #e2e8f0; }
+
+  .demo-result-box {
+    font-family: monospace; font-size: .78rem; white-space: pre-wrap;
+    word-break: break-all; padding: .6rem .8rem; border-radius: 6px;
+    margin: .5rem 0; border: 1px solid #1e2130; background: #0a0c14; color: #94a3b8;
+    display: none;
+  }
+  .demo-result-box.ok  { border-color: #14532d; color: #86efac; }
+  .demo-result-box.err { border-color: #7f1d1d; color: #fca5a5; }
+
+  .demo-explain-txt {
+    font-size: .84rem; color: #86efac; line-height: 1.55;
+    margin: .4rem 0 .7rem; display: none;
+  }
+  .demo-explain-txt.err { color: #fca5a5; }
+
+  .demo-panel .demo-next-btn {
+    margin-top: .4rem; width: auto; padding: .42rem 1.1rem;
+    font-size: .84rem; background: #166534; font-weight: 600;
+  }
+  .demo-panel .demo-next-btn:hover { background: #15803d; }
+  .demo-panel .demo-next-btn:disabled { background: #1e3a1e; color: #475569; cursor: not-allowed; }
 
   /* Cards */
   .flow { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
@@ -307,11 +338,15 @@ def ui():
   }
   .del-btn:hover { background: #7f1d1d; border-color: #7f1d1d; color: #fff; }
 
+  /* Bottom panels grid */
+  .bottom-grid { display: flex; gap: 1rem; align-items: flex-start; }
+  .bottom-grid > * { flex: 1; min-width: 0; }
+
   /* Audit log */
   .audit-panel { background: #1e2130; border: 1px solid #2d3148;
                  border-radius: 10px; padding: 1.25rem 1.5rem; }
   .audit-feed  { font-family: monospace; font-size: .8rem;
-                 max-height: 240px; overflow-y: auto; }
+                 max-height: 300px; overflow-y: auto; }
   .audit-entry { display: flex; gap: .75rem; padding: .3rem 0;
                  border-bottom: 1px solid #1a1f35; align-items: baseline; }
   .audit-entry:last-child { border-bottom: none; }
@@ -321,6 +356,26 @@ def ui():
   .a-result.allowed { color: #86efac; }
   .a-result.denied  { color: #fca5a5; }
   .a-reason { color: #475569; font-size: .74rem; flex-shrink: 0; }
+
+  /* Demo Steps history panel */
+  .demo-hist-panel { background: #1e2130; border: 1px solid #2d3148;
+                     border-radius: 10px; padding: 1.25rem 1.5rem; }
+  .demo-hist-feed  { max-height: 300px; overflow-y: auto; }
+  .demo-hist-entry {
+    padding: .55rem 0; border-bottom: 1px solid #1a1f35;
+  }
+  .demo-hist-entry:last-child { border-bottom: none; }
+  .dh-label {
+    font-size: .72rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; margin-bottom: .25rem;
+  }
+  .dh-label.ok  { color: #4ade80; }
+  .dh-label.err { color: #f87171; }
+  .dh-explain { font-size: .8rem; color: #94a3b8; line-height: 1.5; margin-bottom: .3rem; }
+  .dh-result {
+    font-family: monospace; font-size: .74rem; white-space: pre-wrap;
+    word-break: break-all; color: #475569;
+  }
 
   /* Tier badge colours */
   .tier-public   { background:#1e3a5f; color:#7dd3fc; }
@@ -344,20 +399,23 @@ def ui():
   <strong>tier</strong> (Public / Group / Private / Ephemeral) which doubles as their policy tag,
   letting you write rules like &ldquo;private agents may reach public agents&rdquo; without naming
   every agent individually. Use the panels below to register agents, add rules, and watch the
-  <strong>Audit Log</strong> capture every resolution attempt live. Hit <strong>&#9654;&nbsp;Run Demo</strong>
-  to see the full cycle automatically.
+  <strong>Audit Log</strong> capture every resolution attempt live. Hit <strong>&#9654;&nbsp;Start Demo</strong>
+  for a guided walkthrough.
 </div>
 
 <!-- Toolbar -->
 <div class="toolbar">
-  <button class="btn-demo" onclick="runDemo()">&#9654; Run Demo</button>
+  <button class="btn-demo" id="start-demo-btn" onclick="startDemo()">&#9654; Start Demo</button>
   <button class="btn-reset" onclick="doReset()">&#10006; Reset All</button>
 </div>
 
 <!-- Demo step panel -->
 <div class="demo-panel" id="demo-panel">
-  <span class="step-lbl" id="demo-lbl"></span><span id="demo-txt"></span>
-  <div class="step-res" id="demo-res"></div>
+  <div class="demo-step-lbl" id="demo-step-lbl"></div>
+  <div class="demo-desc" id="demo-desc"></div>
+  <div class="demo-result-box" id="demo-result-box"></div>
+  <div class="demo-explain-txt" id="demo-explain-txt"></div>
+  <button class="demo-next-btn" id="demo-next-btn" onclick="advanceDemo()">Next Step</button>
 </div>
 
 <!-- Action cards -->
@@ -436,20 +494,37 @@ def ui():
   </div>
 </div>
 
-<!-- Audit log -->
-<div class="audit-panel">
-  <div class="panel-head">
-    Audit Log
-    <span style="color:#475569;font-size:.75rem;font-weight:400;text-transform:none;letter-spacing:0">
-      &mdash; live resolve attempts, newest first
-    </span>
+<!-- Bottom panels: Audit log + Demo Steps history -->
+<div class="bottom-grid">
+
+  <div class="audit-panel">
+    <div class="panel-head">
+      Audit Log
+      <span style="color:#475569;font-size:.75rem;font-weight:400;text-transform:none;letter-spacing:0">
+        &mdash; live resolve attempts, newest first
+      </span>
+    </div>
+    <div class="audit-feed" id="s-audit">
+      <div class="empty">no attempts yet</div>
+    </div>
   </div>
-  <div class="audit-feed" id="s-audit">
-    <div class="empty">no attempts yet</div>
+
+  <div class="demo-hist-panel">
+    <div class="panel-head">
+      Demo Steps
+      <span style="color:#475569;font-size:.75rem;font-weight:400;text-transform:none;letter-spacing:0">
+        &mdash; completed step history
+      </span>
+    </div>
+    <div class="demo-hist-feed" id="demo-history">
+      <div class="empty">no demo steps yet</div>
+    </div>
   </div>
+
 </div>
 
 <script>
+// ── Utilities ──────────────────────────────────────────────────────────────
 const show = (id, data, ok) => {
   const el = document.getElementById(id);
   el.textContent = JSON.stringify(data, null, 2);
@@ -463,8 +538,6 @@ const api = async (method, path, body) => {
   const json = await r.json().catch(() => ({}));
   return { ok: r.ok, status: r.status, json };
 };
-
-const sleep = ms => new Promise(res => setTimeout(res, ms));
 
 // ── Register ──────────────────────────────────────────────────────────────
 async function doRegister() {
@@ -521,82 +594,190 @@ async function doReset() {
     el.textContent = '\u2014';
     el.className = 'result';
   });
-  hideDemoPanel();
+  _demo = { active: false, step: -1, phase: null, result: null, history: [] };
+  document.getElementById('demo-panel').style.display = 'none';
+  document.getElementById('demo-panel').className = 'demo-panel';
+  document.getElementById('start-demo-btn').textContent = '\u25b6 Start Demo';
+  renderDemoHistory();
   refreshState();
 }
 
-// ── Demo ──────────────────────────────────────────────────────────────────
-function showDemoPanel(lbl, txt, res) {
-  document.getElementById('demo-panel').style.display = 'block';
-  document.getElementById('demo-lbl').textContent = lbl;
-  document.getElementById('demo-txt').textContent = txt;
-  document.getElementById('demo-res').textContent = res || '';
-}
+// ── Demo — step definitions ───────────────────────────────────────────────
+const DEMO_STEPS = [
+  {
+    label:   'Step 1 of 5 \u2014 Register alice',
+    preview: 'Register <strong>alice</strong> as a <strong>private</strong>-tier (internal) agent with credential <code>s3cr3t</code>. Private agents are not publicly reachable by default \u2014 no endpoint will be revealed to callers unless a policy explicitly permits it.',
+    run:     () => api('POST', '/register', {
+      agent_id: 'alice', endpoint: 'https://alice.internal/agent',
+      tags: ['private'], credential: 's3cr3t',
+    }),
+    explain: (ok, json, status) => ok
+      ? 'alice is now registered with tag \u201cprivate\u201d. She has a credential and a registered endpoint, but the registry will not share that endpoint with anyone until a policy says so.'
+      : `Registration failed (${status}): ${json.detail || JSON.stringify(json)}`,
+  },
+  {
+    label:   'Step 2 of 5 \u2014 Register bob',
+    preview: 'Register <strong>bob</strong> as a <strong>public</strong>-tier agent with credential <code>b0bkey</code>. Public agents are intended to be discoverable, but only to callers that hold a valid credential <em>and</em> satisfy a policy rule.',
+    run:     () => api('POST', '/register', {
+      agent_id: 'bob', endpoint: 'https://bob.example/agent',
+      tags: ['public'], credential: 'b0bkey',
+    }),
+    explain: (ok, json, status) => ok
+      ? 'bob is now registered with tag \u201cpublic\u201d. Both agents are in the registry. alice could try to look up bob\u2019s endpoint, but there is still no policy allowing that \u2014 the next step will show what happens.'
+      : `Registration failed (${status}): ${json.detail || JSON.stringify(json)}`,
+  },
+  {
+    label:   'Step 3 of 5 \u2014 Resolve with no policy',
+    preview: 'alice tries to look up bob\u2019s endpoint. alice is authenticated (correct credential) and both agents exist, but <strong>no policy rule has been added yet</strong>. SARL uses a closed-world default: anything not explicitly allowed is <strong>denied</strong>. Expect a 403.',
+    run:     () => api('GET', '/resolve?target=bob&requester_id=alice&credential=s3cr3t'),
+    explain: (ok, json, status) => (!ok && status === 403)
+      ? '403 DENIED \u2014 exactly as expected. Even though both agents are registered and alice\u2019s credential is correct, the registry refused to reveal bob\u2019s endpoint because no policy permits the private \u2192 public connection. The closed-world default protects agents by default.'
+      : ok
+        ? 'Unexpected success \u2014 a policy may already exist. Check registry state.'
+        : `Unexpected error (${status}): ${json.detail || JSON.stringify(json)}`,
+  },
+  {
+    label:   'Step 4 of 5 \u2014 Add policy',
+    preview: 'Add a policy rule: <strong>private \u2192 public = allow</strong>. This grants any agent tagged <em>private</em> the right to resolve any agent tagged <em>public</em>. Because alice is private and bob is public, this single tag-based rule covers the pair without naming them explicitly.',
+    run:     () => api('POST', '/policy', { requester: 'private', target: 'public', allow: true }),
+    explain: (ok, json, status) => ok
+      ? 'Policy added at index 0. The rule \u201cprivate \u2192 public = allow\u201d is now the first (and only) entry in the ordered policy list. The next resolve attempt will walk this list and find a match for alice \u2192 bob.'
+      : `Policy add failed (${status}): ${json.detail || JSON.stringify(json)}`,
+  },
+  {
+    label:   'Step 5 of 5 \u2014 Resolve with policy',
+    preview: 'alice tries to resolve bob\u2019s endpoint again. This time the registry evaluates the policy list and finds the matching rule: <strong>private \u2192 public = allow</strong>. Expect a 200 with bob\u2019s endpoint returned.',
+    run:     () => api('GET', '/resolve?target=bob&requester_id=alice&credential=s3cr3t'),
+    explain: (ok, json, status) => ok
+      ? '200 ALLOWED. The registry matched alice\u2019s \u201cprivate\u201d tag against bob\u2019s \u201cpublic\u201d tag, found the allow rule, and returned bob\u2019s endpoint. alice can now initiate contact. The Audit Log above recorded both attempts \u2014 the earlier DENIED and this ALLOWED.'
+      : `Still denied (${status}): ${json.detail || JSON.stringify(json)}`,
+  },
+];
 
-function hideDemoPanel() {
-  document.getElementById('demo-panel').style.display = 'none';
-}
+// ── Demo — state machine ──────────────────────────────────────────────────
+let _demo = { active: false, step: -1, phase: null, result: null, history: [] };
 
-let _demoRunning = false;
-
-async function runDemo() {
-  if (_demoRunning) return;
-  _demoRunning = true;
-
+async function startDemo() {
   await api('DELETE', '/reset');
   ['r-out', 'p-out', 'v-out'].forEach(id => {
     const el = document.getElementById(id);
     el.textContent = '\u2014';
     el.className = 'result';
   });
+  _demo = { active: true, step: 0, phase: 'preview', result: null, history: [] };
+  document.getElementById('start-demo-btn').textContent = '\u25b6 Restart Demo';
+  renderDemoPanel();
+  renderDemoHistory();
   await refreshState();
+}
 
-  const steps = [
-    {
-      lbl:  'Step 1 / 5',
-      txt:  ' \u2014 Registering alice as a private-tier agent.',
-      run:  () => api('POST', '/register', {
-        agent_id: 'alice', endpoint: 'https://alice.internal/agent',
-        tags: ['private'], credential: 's3cr3t',
-      }),
-    },
-    {
-      lbl:  'Step 2 / 5',
-      txt:  ' \u2014 Registering bob as a public-tier agent.',
-      run:  () => api('POST', '/register', {
-        agent_id: 'bob', endpoint: 'https://bob.example/agent',
-        tags: ['public'], credential: 'b0bkey',
-      }),
-    },
-    {
-      lbl:  'Step 3 / 5',
-      txt:  ' \u2014 alice tries to resolve bob. No policy exists yet \u2192 expect 403 DENIED.',
-      run:  () => api('GET', '/resolve?target=bob&requester_id=alice&credential=s3cr3t'),
-    },
-    {
-      lbl:  'Step 4 / 5',
-      txt:  ' \u2014 Adding policy: private-tier agents may reach public-tier agents.',
-      run:  () => api('POST', '/policy', { requester: 'private', target: 'public', allow: true }),
-    },
-    {
-      lbl:  'Step 5 / 5',
-      txt:  ' \u2014 alice resolves bob again. Policy now matches \u2192 expect 200 ALLOWED.',
-      run:  () => api('GET', '/resolve?target=bob&requester_id=alice&credential=s3cr3t'),
-    },
-  ];
+async function advanceDemo() {
+  if (!_demo.active) return;
 
-  for (const step of steps) {
-    showDemoPanel(step.lbl, step.txt, '');
-    await sleep(700);
+  const btn = document.getElementById('demo-next-btn');
+  btn.disabled = true;
+
+  if (_demo.phase === 'preview') {
+    // Execute the current step
+    const step = DEMO_STEPS[_demo.step];
     const { ok, status, json } = await step.run();
-    showDemoPanel(step.lbl, step.txt,
-      JSON.stringify(ok ? json : { error: json.detail, status }, null, 2));
+    _demo.result = { ok, status, json };
+    _demo.phase = 'result';
+    _demo.history.push({
+      label:   step.label,
+      explain: step.explain(ok, json, status),
+      result:  JSON.stringify(ok ? json : { error: json.detail, status }, null, 2),
+      ok,
+    });
+    renderDemoPanel();
+    renderDemoHistory();
     await refreshState();
-    await sleep(1500);
+  } else {
+    // Advance to the next step (or finish)
+    _demo.step++;
+    if (_demo.step >= DEMO_STEPS.length) {
+      _demo.active = false;
+      _demo.phase  = 'done';
+    } else {
+      _demo.phase  = 'preview';
+      _demo.result = null;
+    }
+    renderDemoPanel();
   }
 
-  showDemoPanel('Done', ' \u2014 Demo complete. Registry state reflects the full sequence.', '');
-  _demoRunning = false;
+  btn.disabled = false;
+}
+
+function renderDemoPanel() {
+  const panel    = document.getElementById('demo-panel');
+  const lbl      = document.getElementById('demo-step-lbl');
+  const desc     = document.getElementById('demo-desc');
+  const resBox   = document.getElementById('demo-result-box');
+  const explainEl= document.getElementById('demo-explain-txt');
+  const nextBtn  = document.getElementById('demo-next-btn');
+
+  if (_demo.step === -1) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  panel.style.display = 'block';
+
+  if (_demo.phase === 'done') {
+    panel.className = 'demo-panel phase-done';
+    lbl.textContent = 'Demo Complete';
+    desc.innerHTML  = 'All 5 steps finished. The <strong>Demo Steps</strong> panel shows the full history. Click <strong>Restart Demo</strong> to run again from scratch.';
+    resBox.style.display    = 'none';
+    explainEl.style.display = 'none';
+    nextBtn.style.display   = 'none';
+    return;
+  }
+
+  const step = DEMO_STEPS[_demo.step];
+  nextBtn.style.display = '';
+
+  if (_demo.phase === 'preview') {
+    panel.className = 'demo-panel phase-preview';
+    lbl.textContent = step.label;
+    desc.innerHTML  = step.preview;
+    resBox.style.display    = 'none';
+    explainEl.style.display = 'none';
+    nextBtn.textContent = 'Next Step \u2192';
+  } else {
+    // result phase
+    panel.className = 'demo-panel phase-result';
+    lbl.textContent = step.label;
+    desc.innerHTML  = step.preview;
+
+    const { ok, status, json } = _demo.result;
+    const resText = JSON.stringify(ok ? json : { error: json.detail, status }, null, 2);
+    resBox.textContent   = resText;
+    resBox.className     = 'demo-result-box ' + (ok ? 'ok' : 'err');
+    resBox.style.display = 'block';
+
+    const explainText = step.explain(ok, json, status);
+    explainEl.textContent   = explainText;
+    explainEl.className     = 'demo-explain-txt' + (ok ? '' : ' err');
+    explainEl.style.display = 'block';
+
+    const isLast = _demo.step >= DEMO_STEPS.length - 1;
+    nextBtn.textContent = isLast ? '\u2713 Finish' : 'Next Step \u2192';
+  }
+}
+
+function renderDemoHistory() {
+  const feed = document.getElementById('demo-history');
+  if (_demo.history.length === 0) {
+    feed.innerHTML = '<div class="empty">no demo steps yet</div>';
+    return;
+  }
+  feed.innerHTML = _demo.history.map(h => `
+    <div class="demo-hist-entry">
+      <div class="dh-label ${h.ok ? 'ok' : 'err'}">${h.label}</div>
+      <div class="dh-explain">${h.explain}</div>
+      <div class="dh-result">${h.result}</div>
+    </div>
+  `).join('');
 }
 
 // ── State refresh ─────────────────────────────────────────────────────────
