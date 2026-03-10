@@ -1,5 +1,5 @@
 """
-SARL Registry — Secure Agent Reachability Layer
+SARL Registry — Selective Agent Reachability Layer
 Minimal prototype: pre-contact reachability filtering, nothing else.
 
 Usage
@@ -390,11 +390,11 @@ def ui():
 <body>
 
 <h1>SARL Registry</h1>
-<p class="sub">Secure Agent Reachability Layer &mdash; pre-contact filtering demo</p>
+<p class="sub">Selective Agent Reachability Layer &mdash; pre-contact filtering demo</p>
 
 <!-- Explanation panel -->
 <div class="explain-panel">
-  <strong>What is SARL?</strong> The Secure Agent Reachability Layer acts as a gatekeeper in front of
+  <strong>What is SARL?</strong> The Selective Agent Reachability Layer acts as a gatekeeper in front of
   your agent network. Before any two agents can communicate, the registry enforces
   <em>pre-contact filtering</em>: an agent&rsquo;s endpoint is <strong>never revealed</strong> to a caller
   unless authentication passes and the tier rules allow it.
@@ -430,18 +430,18 @@ def ui():
   <div class="card">
     <h2><span class="badge">POST</span>/register</h2>
     <label>Agent ID</label>
-    <input id="r-id" value="alice">
+    <input id="r-id" value="bob">
     <label>Endpoint URL</label>
-    <input id="r-ep" value="https://alice.internal/agent">
+    <input id="r-ep" value="https://bob.example/agent">
     <label>Tier</label>
     <select id="r-tier">
-      <option value="public">Public</option>
+      <option value="public" selected>Public</option>
       <option value="group">Group</option>
-      <option value="private" selected>Private</option>
+      <option value="private">Private</option>
       <option value="ephemeral">Ephemeral</option>
     </select>
     <label>Credential</label>
-    <input id="r-cred" value="s3cr3t">
+    <input id="r-cred" value="b0bkey">
     <button onclick="doRegister()">Register Agent</button>
     <div class="result" id="r-out">&mdash;</div>
   </div>
@@ -452,9 +452,9 @@ def ui():
   <div class="card">
     <h2><span class="badge">POST</span>/policy</h2>
     <label>Requester (id or tag)</label>
-    <input id="p-req" value="private">
+    <input id="p-req" value="bob">
     <label>Target (id or tag)</label>
-    <input id="p-tgt" value="public">
+    <input id="p-tgt" value="alice">
     <label>Decision</label>
     <select id="p-allow">
       <option value="true">allow</option>
@@ -470,11 +470,11 @@ def ui():
   <div class="card">
     <h2><span class="badge">GET</span>/resolve</h2>
     <label>Requester ID</label>
-    <input id="v-rid" value="alice">
+    <input id="v-rid" value="bob">
     <label>Credential</label>
-    <input id="v-cred" value="s3cr3t">
+    <input id="v-cred" value="b0bkey">
     <label>Target Agent ID</label>
-    <input id="v-tgt" value="bob">
+    <input id="v-tgt" value="alice">
     <button onclick="doResolve()">Resolve Endpoint</button>
     <div class="result" id="v-out">&mdash;</div>
   </div>
@@ -740,9 +740,9 @@ function renderDemoPanel() {
     panel.className = 'demo-panel phase-done';
     lbl.textContent = 'Demo Complete';
     desc.innerHTML  = 'All 6 steps finished. The <strong>Demo Steps</strong> panel shows the full history. Click <strong>Restart Demo</strong> to run again from scratch.';
-    resBox.style.display    = 'none';
+    resBox.style.display   = 'none';
     explainEl.style.display = 'none';
-    nextBtn.style.display   = 'none';
+    nextBtn.style.display  = 'none';
     return;
   }
 
