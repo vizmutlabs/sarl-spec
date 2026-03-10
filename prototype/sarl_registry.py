@@ -640,10 +640,10 @@ const DEMO_STEPS = [
   },
   {
     label:   'Step 4 of 6 \u2014 Resolve alice (Private \u2014 fails)',
-    preview: 'bob tries to resolve <strong>alice\u2019s</strong> endpoint. alice is tagged <em>private</em>, so the public-tier bypass does not apply. SARL walks the policy list and finds <strong>no matching rule</strong>. The closed-world default kicks in. Expect a 403.',
+    preview: 'bob tries to resolve <strong>alice\u2019s</strong> endpoint. alice is tagged <em>private</em>, so the public-tier bypass does not apply. SARL walks the policy list and finds <strong>no matching rule</strong>. The closed-world default kicks in. Expect a 404.',
     run:     () => api('GET', '/resolve?target=alice&requester_id=bob&credential=b0bkey'),
-    explain: (ok, json, status) => (!ok && status === 403)
-      ? '403 DENIED \u2014 closed-world default. alice is private, there is no policy permitting bob \u2192 alice, so the registry refuses to reveal her endpoint. Authentication alone is never enough for non-public agents.'
+    explain: (ok, json, status) => (!ok && status === 404)
+      ? '404 NOT FOUND \u2014 closed-world default. alice is private, there is no policy permitting bob \u2192 alice, so the registry refuses to reveal her endpoint. Authentication alone is never enough for non-public agents.'
       : ok
         ? 'Unexpected success \u2014 a stale policy may exist. Check registry state.'
         : `Unexpected error (${status}): ${json.detail || JSON.stringify(json)}`,
