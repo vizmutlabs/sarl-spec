@@ -159,8 +159,7 @@ def resolve(
         _deny("target not registered", 404, f"target '{target}' not registered")
 
     if not _is_reachable(requester_id, requester["tags"], target, target_agent["tags"]):
-        _deny("policy deny", 403,
-              f"reachability policy denies '{requester_id}' → '{target}'")
+        _deny("policy deny", 404, f"target '{target}' not registered")
 
     _audit_log.append({"ts": ts, "requester": requester_id,
                        "target": target, "result": "ALLOWED", "reason": ""})
